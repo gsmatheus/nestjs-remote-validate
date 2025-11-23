@@ -1,6 +1,6 @@
 {
     "name": "nestjs-remote-validate",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "External API validator decorator for NestJS/ClassValidator",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -37,7 +37,7 @@
     "author": "gsmatheus",
     "repository": {
         "type": "git",
-        "url": "https://github.com/gsmatheus/nestjs-remote-validate.git"
+        "url": "git+https://github.com/gsmatheus/nestjs-remote-validate.git"
     },
     "homepage": "https://github.com/gsmatheus/nestjs-remote-validate",
     "bugs": {
