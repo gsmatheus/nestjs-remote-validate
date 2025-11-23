@@ -23,8 +23,8 @@ npm install nestjs-remote-validate
 Register the constraint in your `app.module.ts` so NestJS can inject dependencies if needed (and manage the instance).
 
 ```typescript
-import { Module } from '@nestjs/common';
-import { RemoteApiValidatorConstraint } from 'nestjs-remote-validate';
+import { Module } from "@nestjs/common";
+import { RemoteApiValidatorConstraint } from "nestjs-remote-validate";
 
 @Module({
   providers: [RemoteApiValidatorConstraint],
@@ -37,10 +37,10 @@ export class AppModule {}
 In your `main.ts`, ensure `useContainer` is set up to allow `class-validator` to use NestJS dependency injection.
 
 ```typescript
-import { useContainer } from 'class-validator';
-import { ValidationPipe } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { useContainer } from "class-validator";
+import { ValidationPipe } from "@nestjs/common";
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -52,7 +52,7 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true,
       transform: true,
-    }),
+    })
   );
 
   await app.listen(3000);
@@ -67,22 +67,21 @@ bootstrap();
 Validates a field by sending its value in the request body to an external API.
 
 ```typescript
-import { RemoteValidate } from 'nestjs-remote-validate';
+import { RemoteValidate } from "nestjs-remote-validate";
 
-export class CreateUserDto {
+export class CreateDto {
   @RemoteValidate({
-    host: 'https://api.validator.com/check-cpf',
-    method: 'POST',
-    headers: { 'x-api-key': '123' },
+    host: "https://api.example.com/validate",
+    method: "POST",
+    headers: { "x-api-key": "your-api-key" },
     required: true,
-    // Custom validation logic
     validate: ({ status, body }) => status === 200 && body.valid === true,
   })
-  cpf: string;
+  field: string;
 }
 ```
 
-_Sends JSON: `{ "cpf": "value" }`_
+_Sends JSON: `{ "field": "value" }`_
 
 ---
 
@@ -91,21 +90,20 @@ _Sends JSON: `{ "cpf": "value" }`_
 Validates a field by substituting it into the URL. Ideal for checking resource existence via GET.
 
 ```typescript
-import { RemoteValidate } from 'nestjs-remote-validate';
+import { RemoteValidate } from "nestjs-remote-validate";
 
-export class UpdateTodoDto {
+export class UpdateDto {
   @RemoteValidate({
-    // :todoId will be replaced by the value of the decorated property
-    host: 'https://jsonplaceholder.typicode.com/todos/:todoId',
-    method: 'GET',
+    host: "https://api.example.com/resources/:resourceId",
+    method: "GET",
     required: true,
     validate: ({ status }) => status === 200,
   })
-  todoId: string;
+  resourceId: string;
 }
 ```
 
-_Request: `GET https://jsonplaceholder.typicode.com/todos/123`_
+_Request: `GET https://api.example.com/resources/123`_
 
 ---
 
@@ -116,23 +114,22 @@ Validates the field AND populates another field in the DTO with data from the ex
 **Note:** You must use `@Allow()` on the target field to prevent `ValidationPipe` (whitelist) from stripping it out, as it's not present in the original request payload.
 
 ```typescript
-import { Allow } from 'class-validator';
-import { RemoteValidate } from 'nestjs-remote-validate';
+import { Allow } from "class-validator";
+import { RemoteValidate } from "nestjs-remote-validate";
 
-export class EnrichedTodoDto {
+export class EnrichedDto {
   @RemoteValidate({
-    host: 'https://jsonplaceholder.typicode.com/todos/:todoId',
-    method: 'GET',
+    host: "https://api.example.com/resources/:resourceId",
+    method: "GET",
     required: true,
     validate: ({ status }) => status === 200,
-    // Extract title from response and inject into 'todoTitle'
-    extractValue: (body) => body?.title,
-    targetField: 'todoTitle',
+    extractValue: (body) => body?.name,
+    targetField: "resourceName",
   })
-  todoId: number;
+  resourceId: number;
 
-  @Allow() // Required to allow the injected property to pass through the whitelist
-  todoTitle: string;
+  @Allow()
+  resourceName: string;
 }
 ```
 

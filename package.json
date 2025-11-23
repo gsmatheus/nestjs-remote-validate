@@ -30,6 +30,14 @@
         "external",
         "api"
     ],
-    "author": "",
+    "author": "gsmatheus",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/gsmatheus/nestjs-remote-validate.git"
+    },
+    "homepage": "https://github.com/gsmatheus/nestjs-remote-validate",
+    "bugs": {
+        "url": "https://github.com/gsmatheus/nestjs-remote-validate/issues"
+    },
     "license": "MIT"
 }
