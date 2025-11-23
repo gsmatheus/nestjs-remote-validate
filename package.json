@@ -4,9 +4,13 @@
     "description": "External API validator decorator for NestJS/ClassValidator",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
     "scripts": {
         "build": "tsc",
-        "test": "jest"
+        "test": "jest",
+        "prepublishOnly": "npm run build"
     },
     "peerDependencies": {
         "@nestjs/common": "^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0",
