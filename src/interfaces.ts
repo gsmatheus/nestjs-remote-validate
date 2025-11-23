@@ -40,5 +40,10 @@ export interface ExternalValidatorOptions {
    */
   targetField?: string;
 
+  /**
+   * Request timeout in milliseconds (default: 5000ms).
+   */
+  timeout?: number;
+
   [key: string]: any;
 }

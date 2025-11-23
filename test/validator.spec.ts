@@ -1,11 +1,10 @@
-import { ValidationArguments } from 'class-validator';
-import { RemoteApiValidatorConstraint } from '../src/validator.constraint';
-import { ExternalValidatorOptions } from '../src/interfaces';
+import { ValidationArguments } from "class-validator";
+import { RemoteApiValidatorConstraint } from "../src/validator.constraint";
+import { ExternalValidatorOptions } from "../src/interfaces";
 
-// Mock global fetch
 global.fetch = jest.fn();
 
-describe('RemoteApiValidatorConstraint', () => {
+describe("RemoteApiValidatorConstraint", () => {
   let constraint: RemoteApiValidatorConstraint;
 
   beforeEach(() => {
@@ -13,7 +12,7 @@ describe('RemoteApiValidatorConstraint', () => {
     (global.fetch as jest.Mock).mockClear();
   });
 
-  it('should return true if value is empty and required is false', async () => {
+  it("should return true if value is empty and required is false", async () => {
     const args: Partial<ValidationArguments> = {
       constraints: [{ required: false } as ExternalValidatorOptions],
     };
@@ -22,16 +21,16 @@ describe('RemoteApiValidatorConstraint', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it('should return false if value is empty and required is true', async () => {
+  it("should return false if value is empty and required is true", async () => {
     const args: Partial<ValidationArguments> = {
       constraints: [{ required: true } as ExternalValidatorOptions],
     };
-    const result = await constraint.validate('', args as ValidationArguments);
+    const result = await constraint.validate("", args as ValidationArguments);
     expect(result).toBe(false);
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it('should validate successfully via POST (default)', async () => {
+  it("should validate successfully via POST (default)", async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: async () => ({ success: true }),
@@ -39,31 +38,31 @@ describe('RemoteApiValidatorConstraint', () => {
     });
 
     const args: Partial<ValidationArguments> = {
-      property: 'cpf',
+      property: "cpf",
       constraints: [
         {
-          host: 'https://api.com/validate',
+          host: "https://api.com/validate",
           required: true,
         } as ExternalValidatorOptions,
       ],
     };
 
     const result = await constraint.validate(
-      '123456',
-      args as ValidationArguments,
+      "123456",
+      args as ValidationArguments
     );
 
     expect(result).toBe(true);
     expect(global.fetch).toHaveBeenCalledWith(
-      'https://api.com/validate',
+      "https://api.com/validate",
       expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({ cpf: '123456' }),
-      }),
+        method: "POST",
+        body: JSON.stringify({ cpf: "123456" }),
+      })
     );
   });
 
-  it('should validate successfully via GET with URL params', async () => {
+  it("should validate successfully via GET with URL params", async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       json: async () => ({ id: 1 }),
@@ -71,76 +70,76 @@ describe('RemoteApiValidatorConstraint', () => {
     });
 
     const args: Partial<ValidationArguments> = {
-      property: 'todoId',
+      property: "todoId",
       constraints: [
         {
-          host: 'https://api.com/todos/:todoId',
-          method: 'GET',
+          host: "https://api.com/todos/:todoId",
+          method: "GET",
           required: true,
         } as ExternalValidatorOptions,
       ],
     };
 
-    const result = await constraint.validate('1', args as ValidationArguments);
+    const result = await constraint.validate("1", args as ValidationArguments);
 
     expect(result).toBe(true);
     expect(global.fetch).toHaveBeenCalledWith(
-      'https://api.com/todos/1',
+      "https://api.com/todos/1",
       expect.objectContaining({
-        method: 'GET',
+        method: "GET",
         body: undefined,
-      }),
+      })
     );
   });
 
-  it('should fail if external API returns 400/500', async () => {
+  it("should fail if external API returns 400/500", async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: false,
-      json: async () => ({ error: 'Invalid' }),
+      json: async () => ({ error: "Invalid" }),
       status: 400,
     });
 
     const args: Partial<ValidationArguments> = {
       constraints: [
-        { host: 'https://api.com', required: true } as ExternalValidatorOptions,
+        { host: "https://api.com", required: true } as ExternalValidatorOptions,
       ],
     };
 
     const result = await constraint.validate(
-      'val',
-      args as ValidationArguments,
+      "val",
+      args as ValidationArguments
     );
     expect(result).toBe(false);
   });
 
-  it('should use custom validation logic', async () => {
+  it("should use custom validation logic", async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      json: async () => ({ valid: false, message: 'Blocked' }), // Status 200 but logical failure
+      json: async () => ({ valid: false, message: "Blocked" }),
       status: 200,
     });
 
     const args: Partial<ValidationArguments> = {
-      property: 'email',
+      property: "email",
       constraints: [
         {
-          host: 'https://api.com',
+          host: "https://api.com",
           validate: ({ body }) => body.valid === true,
         } as ExternalValidatorOptions,
       ],
     };
 
     const result = await constraint.validate(
-      'test@test.com',
-      args as ValidationArguments,
+      "test@test.com",
+      args as ValidationArguments
     );
     expect(result).toBe(false);
   });
 
-  it('should extract value and inject into target object', async () => {
+  it("should extract value and inject into target object", async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      json: async () => ({ title: 'My Todo' }),
+      json: async () => ({ title: "My Todo" }),
       status: 200,
     });
 
@@ -149,15 +148,101 @@ describe('RemoteApiValidatorConstraint', () => {
       object: targetObject,
       constraints: [
         {
-          host: 'https://api.com',
+          host: "https://api.com",
           extractValue: (body) => body.title,
-          targetField: 'todoTitle',
+          targetField: "todoTitle",
         } as ExternalValidatorOptions,
       ],
     };
 
-    await constraint.validate('123', args as ValidationArguments);
+    await constraint.validate("123", args as ValidationArguments);
 
-    expect(targetObject.todoTitle).toBe('My Todo');
+    expect(targetObject.todoTitle).toBe("My Todo");
+  });
+
+  it("should use default timeout of 5000ms when timeout is not specified", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true }),
+      status: 200,
+    });
+
+    const args: Partial<ValidationArguments> = {
+      property: "field",
+      constraints: [
+        {
+          host: "https://api.com/validate",
+          required: true,
+        } as ExternalValidatorOptions,
+      ],
+    };
+
+    await constraint.validate("value", args as ValidationArguments);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      "https://api.com/validate",
+      expect.objectContaining({
+        signal: expect.any(AbortSignal),
+      })
+    );
+  });
+
+  it("should use custom timeout when specified", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true }),
+      status: 200,
+    });
+
+    const args: Partial<ValidationArguments> = {
+      property: "field",
+      constraints: [
+        {
+          host: "https://api.com/validate",
+          required: true,
+          timeout: 10000,
+        } as ExternalValidatorOptions,
+      ],
+    };
+
+    await constraint.validate("value", args as ValidationArguments);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      "https://api.com/validate",
+      expect.objectContaining({
+        signal: expect.any(AbortSignal),
+      })
+    );
+  });
+
+  it("should fail validation when request times out", async () => {
+    (global.fetch as jest.Mock).mockImplementation(
+      () =>
+        new Promise((_, reject) => {
+          setTimeout(() => {
+            const error = new Error("This operation was aborted");
+            error.name = "AbortError";
+            reject(error);
+          }, 200);
+        })
+    );
+
+    const args: Partial<ValidationArguments> = {
+      property: "field",
+      constraints: [
+        {
+          host: "https://api.com/validate",
+          required: true,
+          timeout: 100,
+        } as ExternalValidatorOptions,
+      ],
+    };
+
+    const result = await constraint.validate(
+      "value",
+      args as ValidationArguments
+    );
+
+    expect(result).toBe(false);
   });
 });
