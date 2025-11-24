@@ -1,28 +1,68 @@
 # NestJS Remote Validate
 
-A powerful NestJS decorator that allows you to validate DTO properties against external APIs. It supports dynamic parameter substitution, custom success logic, and response data injection (side-effects).
+A powerful decorator for **NestJS** that enables validating DTO properties **against external HTTP APIs** — with dynamic URL injection, flexible validation logic, and automatic DTO enrichment.
 
-## Features
+This library brings to NestJS something that surprisingly _does not exist natively_:
+a clean, declarative pattern for **remote validation**.
 
-- **Remote Validation**: Validate fields by calling an external HTTP endpoint.
-- **Dynamic URLs**: Automatically substitute URL parameters with the field value (e.g., `/:userId`).
-- **Flexible Methods**: Support for POST (sending body) and GET (URL params).
-- **Custom Validation Logic**: Define your own success criteria (status code, body content).
-- **Data Injection**: Extract data from the external API response and inject it into another field in your DTO (populating fields automatically).
+---
 
-## Installation
+<p align="center">
+  <img src="https://img.shields.io/npm/v/nestjs-remote-validate" />
+  <img src="https://img.shields.io/npm/dm/nestjs-remote-validate" />
+  <img src="https://img.shields.io/github/stars/gsmatheus/nestjs-remote-validate" />
+  <img src="https://img.shields.io/badge/NestJS-v8%2B-red" />
+  <img src="https://img.shields.io/badge/TypeScript-100%25-blue" />
+</p>
+
+---
+
+## 🌟 Highlights
+
+- **Remote Validation** — validate any field by querying an external API.
+- **Dynamic Routes** — inject the field value into the URL (`/users/:id`).
+- **POST & GET Support** — send body or use URL parameters.
+- **Custom Validation Rules** — full control over success logic.
+- **DTO Enrichment** — extract values from the API and inject into other fields.
+- **Native NestJS Style** — works like `class-validator`, but with HTTP.
+
+---
+
+## 🧠 Why does this library exist?
+
+NestJS excels in local validation using decorators (`@IsEmail()`, `@IsUUID()`, etc.).
+But when developers need to validate data using **external APIs**, they usually:
+
+- put validation inside controllers
+- write custom pipes manually
+- mix validation with business logic
+- duplicate code between modules
+- break the DTO → pipe pattern completely
+
+There was no simple way to do:
+
+```ts
+@RemoteValidate({ host: 'https://my-api.com/users/:userId', method: 'GET' })
+userId: string;
+```
+
+Now there is. 🎉
+
+---
+
+## 📦 Installation
 
 ```bash
 npm install nestjs-remote-validate
 ```
 
-## Setup
+---
 
-### 1. Register the Provider
+## ⚙️ Setup
 
-Register the constraint in your `app.module.ts` so NestJS can inject dependencies if needed (and manage the instance).
+### 1. Register validator provider
 
-```typescript
+```ts
 import { Module } from "@nestjs/common";
 import { RemoteApiValidatorConstraint } from "nestjs-remote-validate";
 
@@ -32,20 +72,17 @@ import { RemoteApiValidatorConstraint } from "nestjs-remote-validate";
 export class AppModule {}
 ```
 
-### 2. Configure Global Pipes & Container
+### 2. Enable dependency injection in class-validator
 
-In your `main.ts`, ensure `useContainer` is set up to allow `class-validator` to use NestJS dependency injection.
-
-```typescript
+```ts
 import { useContainer } from "class-validator";
-import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import { ValidationPipe } from "@nestjs/common";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Important: Allow class-validator to use NestJS DI
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
 
   app.useGlobalPipes(
@@ -60,20 +97,37 @@ async function bootstrap() {
 bootstrap();
 ```
 
-## Use Cases
+---
 
-### Case 1: Simple Validation via POST Body
+## 🔧 Decorator Options
 
-Validates a field by sending its value in the request body to an external API.
+- `host` (string, required) – target URL; supports `:${propertyName}` for dynamic injection.
+- `method` (string, optional) – defaults to `POST`; in `GET/HEAD` no body is sent.
+- `headers` (Record<string,string>, optional) – additional headers.
+- `required` (boolean, optional) – if `true`, fails locally when empty; if `false`, skips validation when empty.
+- `validate` (fn, optional) – receives `{ status, body }` and returns `boolean`.
+- `extractValue` (fn, optional) – extracts value from `body` to enrich the DTO.
+- `targetField` (string, optional) – DTO field that receives the value from `extractValue`.
+- `timeout` (number, optional) – timeout in ms (default `5000`).
 
-```typescript
+Notes:
+
+- For `POST` requests, the body sent is `{"[property]": value}`.
+- URL injection occurs only for placeholders that exactly match the property name, e.g., `id` → `:id`.
+
+---
+
+## 📚 Basic Usage
+
+### ✔️ 1. POST validation with body
+
+```ts
 import { RemoteValidate } from "nestjs-remote-validate";
 
 export class CreateDto {
   @RemoteValidate({
     host: "https://api.example.com/validate",
     method: "POST",
-    headers: { "x-api-key": "your-api-key" },
     required: true,
     validate: ({ status, body }) => status === 200 && body.valid === true,
   })
@@ -81,58 +135,165 @@ export class CreateDto {
 }
 ```
 
-_Sends JSON: `{ "field": "value" }`_
-
 ---
 
-### Case 2: RESTful Validation (URL Parameters)
+### ✔️ 2. GET validation with dynamic URL params
 
-Validates a field by substituting it into the URL. Ideal for checking resource existence via GET.
-
-```typescript
-import { RemoteValidate } from "nestjs-remote-validate";
-
+```ts
 export class UpdateDto {
   @RemoteValidate({
-    host: "https://api.example.com/resources/:resourceId",
+    host: "https://api.example.com/resources/:id",
     method: "GET",
-    required: true,
     validate: ({ status }) => status === 200,
   })
-  resourceId: string;
+  id: string;
 }
 ```
-
-_Request: `GET https://api.example.com/resources/123`_
 
 ---
 
-### Case 3: Validation with Data Injection (Side-Effect)
+### ✔️ 3. Validate + enrich DTO (auto-populate another field)
 
-Validates the field AND populates another field in the DTO with data from the external response.
-
-**Note:** You must use `@Allow()` on the target field to prevent `ValidationPipe` (whitelist) from stripping it out, as it's not present in the original request payload.
-
-```typescript
-import { Allow } from "class-validator";
-import { RemoteValidate } from "nestjs-remote-validate";
-
+```ts
 export class EnrichedDto {
   @RemoteValidate({
-    host: "https://api.example.com/resources/:resourceId",
+    host: "https://api.example.com/products/:id",
     method: "GET",
-    required: true,
     validate: ({ status }) => status === 200,
     extractValue: (body) => body?.name,
-    targetField: "resourceName",
+    targetField: "productName",
   })
-  resourceId: number;
+  id: number;
 
   @Allow()
-  resourceName: string;
+  productName: string;
 }
 ```
 
-## License
+---
+
+## 🔥 Advanced Usage
+
+### ✔️ Passing headers, tokens, or API keys
+
+```ts
+@RemoteValidate({
+  host: "https://api.example.com/check",
+  method: "POST",
+  headers: {
+    Authorization: "Bearer abc123",
+  },
+  validate: ({ status }) => status === 204,
+})
+value: string;
+```
+
+---
+
+### ✔️ Inject multiple fields from response
+
+```ts
+@RemoteValidate({
+  host: "https://api.example.com/users/:id",
+  method: "GET",
+  validate: ({ status }) => status === 200,
+  extractValue: (body) => ({
+    name: body.name,
+    email: body.email,
+  }),
+  targetField: "user",
+})
+userId: number;
+
+@Allow()
+user: { name: string; email: string };
+```
+
+---
+
+### ❗ Current Limitations
+
+- `POST` request body is sent as `{"[property]": value}` without customization.
+- HTTP client: uses `fetch` internally; custom client injection is not supported.
+
+---
+
+## 🔎 Comparison (Before vs After)
+
+### ❌ Before (common NestJS approach)
+
+```ts
+// Controller
+const result = await this.http.get(`/users/${dto.userId}`);
+if (!result.valid) throw new BadRequestException();
+```
+
+Validation is mixed with business logic.
+
+---
+
+### ✅ After (clean DTO validation)
+
+```ts
+@RemoteValidate({ host: "https://api/users/:userId", method: "GET" })
+userId: string;
+```
+
+Much cleaner. Works with pipes. Decoupled.
+
+---
+
+## 🤝 When should you use this?
+
+Use this library when:
+
+- you need to validate input against **external systems**
+- you integrate with microservices
+- you validate IDs that must exist upstream
+- you follow DDD and want DTOs lean + descriptive
+- you want consistent validation logic across modules
+
+---
+
+## ❓ FAQ
+
+### • Does it run before the controller?
+
+Yes — inside the `ValidationPipe`.
+
+### • Does it support async validation?
+
+100% asynchronous.
+
+### • Does it support caching?
+
+There is no customizable HTTP client; implement caching externally (API gateway, app-level cache, etc.).
+
+### • Can it enrich multiple fields?
+
+Yes — just return an object in `extractValue`.
+
+### • Does it support headers or tokens?
+
+Yes, fully.
+
+### • Does it break on whitelist?
+
+No — as long as you mark enriched fields with `@Allow()`.
+
+---
+
+## 🤝 Contributing
+
+- Open issues and PRs on the official repository.
+- To develop locally:
+  - `npm install`
+  - `npm test`
+  - `npm run build`
+- Standards: TypeScript; Jest for tests.
+
+---
+
+## 📝 License
 
 MIT
