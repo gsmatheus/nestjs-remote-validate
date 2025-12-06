@@ -1,4 +1,5 @@
 import { ValidationArguments } from "class-validator";
+import { Logger } from "@nestjs/common";
 import { ApiValidatorConstraint } from "../src/validator.constraint";
 import { ApiValidatorOptions } from "../src/interfaces";
 
@@ -528,6 +529,127 @@ describe("ApiValidatorConstraint", () => {
           method: "PUT",
           body: JSON.stringify({ newStatus: "active" }),
         })
+      );
+    });
+  });
+
+  describe("Logger integration", () => {
+    it("should use NestJS Logger when injected", async () => {
+      const mockLogger = {
+        error: jest.fn(),
+      } as unknown as Logger;
+
+      const constraintWithLogger = new ApiValidatorConstraint(mockLogger);
+
+      (global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"));
+
+      const args: Partial<ValidationArguments> = {
+        property: "field",
+        constraints: [
+          {
+            host: "https://api.com/validate",
+            required: true,
+          } as ApiValidatorOptions,
+        ],
+      };
+
+      const result = await constraintWithLogger.validate(
+        "value",
+        args as ValidationArguments
+      );
+
+      expect(result).toBe(false);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        "External validation error:",
+        expect.any(String)
+      );
+    });
+
+    it("should create default Logger when not injected", () => {
+      const constraintWithoutLogger = new ApiValidatorConstraint();
+      expect(constraintWithoutLogger["logger"]).toBeDefined();
+    });
+
+    it("should use Logger.error with stack trace when available", async () => {
+      const mockLogger = {
+        error: jest.fn(),
+      } as unknown as Logger;
+
+      const constraintWithLogger = new ApiValidatorConstraint(mockLogger);
+
+      const errorWithStack = new Error("Network error");
+      errorWithStack.stack = "Error: Network error\n    at test.js:1:1";
+
+      (global.fetch as jest.Mock).mockRejectedValue(errorWithStack);
+
+      const args: Partial<ValidationArguments> = {
+        property: "field",
+        constraints: [
+          {
+            host: "https://api.com/validate",
+          } as ApiValidatorOptions,
+        ],
+      };
+
+      await constraintWithLogger.validate("value", args as ValidationArguments);
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        "External validation error:",
+        expect.stringContaining("Error: Network error")
+      );
+    });
+
+    it("should fallback to console.error when logger is explicitly null", async () => {
+      const consoleErrorSpy = jest
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+
+      const constraintWithoutLogger = new ApiValidatorConstraint(undefined);
+
+      (global.fetch as jest.Mock).mockRejectedValue(
+        new Error("Connection timeout")
+      );
+
+      const args: Partial<ValidationArguments> = {
+        property: "field",
+        constraints: [
+          {
+            host: "https://api.com/validate",
+          } as ApiValidatorOptions,
+        ],
+      };
+
+      await constraintWithoutLogger.validate(
+        "value",
+        args as ValidationArguments
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it("should log different types of errors appropriately", async () => {
+      const mockLogger = {
+        error: jest.fn(),
+      } as unknown as Logger;
+
+      const constraintWithLogger = new ApiValidatorConstraint(mockLogger);
+
+      (global.fetch as jest.Mock).mockRejectedValue("String error");
+
+      const args: Partial<ValidationArguments> = {
+        property: "field",
+        constraints: [
+          {
+            host: "https://api.com/validate",
+          } as ApiValidatorOptions,
+        ],
+      };
+
+      await constraintWithLogger.validate("value", args as ValidationArguments);
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        "External validation error:",
+        "String error"
       );
     });
   });

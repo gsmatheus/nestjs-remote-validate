@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
@@ -9,6 +9,20 @@ import { ApiValidatorOptions } from "./interfaces";
 @ValidatorConstraint({ async: true })
 @Injectable()
 export class ApiValidatorConstraint implements ValidatorConstraintInterface {
+  constructor(private readonly logger?: Logger) {
+    if (!this.logger) {
+      this.logger = new Logger(ApiValidatorConstraint.name);
+    }
+  }
+
+  private logError(message: string, error: any) {
+    if (this.logger) {
+      this.logger.error(message, error?.stack || error);
+    } else {
+      console.error(message, error);
+    }
+  }
+
   async validate(value: any, args: ValidationArguments) {
     const [config] = args.constraints as [ApiValidatorOptions];
 
@@ -67,7 +81,7 @@ export class ApiValidatorConstraint implements ValidatorConstraintInterface {
 
       return response.ok;
     } catch (error) {
-      console.error("External validation error:", error);
+      this.logError("External validation error:", error);
       return false;
     }
   }
