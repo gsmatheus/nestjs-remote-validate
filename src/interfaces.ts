@@ -45,5 +45,12 @@ export interface ApiValidatorOptions {
    */
   timeout?: number;
 
+  /**
+   * Function to transform the field value into the request body.
+   * Receives the field value and the complete DTO object.
+   * If not provided, the default format { [property]: value } is used.
+   */
+  mapBody?: (value: any, object: any) => any;
+
   [key: string]: any;
 }

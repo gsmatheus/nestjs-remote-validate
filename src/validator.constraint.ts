@@ -25,6 +25,15 @@ export class ApiValidatorConstraint implements ValidatorConstraintInterface {
       const method = (config.method || "POST").toUpperCase();
       const isBodyAllowed = !["GET", "HEAD"].includes(method);
 
+      let bodyData = null;
+      if (isBodyAllowed) {
+        if (config.mapBody) {
+          bodyData = config.mapBody(value, args.object);
+        } else {
+          bodyData = { [args.property]: value };
+        }
+      }
+
       const controller = new AbortController();
       const timeout = config.timeout ?? 5000;
       const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -32,9 +41,7 @@ export class ApiValidatorConstraint implements ValidatorConstraintInterface {
       const response = await fetch(url, {
         method: method,
         headers: config.headers,
-        body: isBodyAllowed
-          ? JSON.stringify({ [args.property]: value })
-          : undefined,
+        body: bodyData ? JSON.stringify(bodyData) : undefined,
         signal: controller.signal,
       });
 

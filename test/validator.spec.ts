@@ -245,4 +245,290 @@ describe("ApiValidatorConstraint", () => {
 
     expect(result).toBe(false);
   });
+
+  describe("mapBody feature", () => {
+    it("should use default body format when mapBody is not provided", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true }),
+        status: 200,
+      });
+
+      const args: Partial<ValidationArguments> = {
+        property: "userId",
+        constraints: [
+          {
+            host: "https://api.com/validate",
+            method: "POST",
+          } as ApiValidatorOptions,
+        ],
+      };
+
+      await constraint.validate("123", args as ValidationArguments);
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "https://api.com/validate",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ userId: "123" }),
+        })
+      );
+    });
+
+    it("should use mapBody to rename property", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true }),
+        status: 200,
+      });
+
+      const args: Partial<ValidationArguments> = {
+        property: "userCode",
+        constraints: [
+          {
+            host: "https://api.com/check-user",
+            method: "POST",
+            mapBody: (code: string) => ({ id: code }),
+          } as ApiValidatorOptions,
+        ],
+      };
+
+      await constraint.validate("123", args as ValidationArguments);
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "https://api.com/check-user",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ id: "123" }),
+        })
+      );
+    });
+
+    it("should use mapBody to create nested structure", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true }),
+        status: 200,
+      });
+
+      const args: Partial<ValidationArguments> = {
+        property: "email",
+        constraints: [
+          {
+            host: "https://api.legacy.com/search",
+            method: "POST",
+            mapBody: (email: string) => ({
+              query: {
+                filter: {
+                  contact_email: email,
+                  active: true,
+                },
+              },
+            }),
+          } as ApiValidatorOptions,
+        ],
+      };
+
+      await constraint.validate(
+        "test@example.com",
+        args as ValidationArguments
+      );
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "https://api.legacy.com/search",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            query: {
+              filter: {
+                contact_email: "test@example.com",
+                active: true,
+              },
+            },
+          }),
+        })
+      );
+    });
+
+    it("should use mapBody with access to other DTO fields", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ valid: true }),
+        status: 200,
+      });
+
+      const dtoObject = {
+        storeId: "store-456",
+        couponCode: "DISCOUNT20",
+      };
+
+      const args: Partial<ValidationArguments> = {
+        property: "couponCode",
+        object: dtoObject,
+        constraints: [
+          {
+            host: "https://api.loja.com/validate-coupon",
+            method: "POST",
+            mapBody: (coupon: string, dto: any) => ({
+              code: coupon,
+              store_id: dto.storeId,
+            }),
+          } as ApiValidatorOptions,
+        ],
+      };
+
+      await constraint.validate("DISCOUNT20", args as ValidationArguments);
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "https://api.loja.com/validate-coupon",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            code: "DISCOUNT20",
+            store_id: "store-456",
+          }),
+        })
+      );
+    });
+
+    it("should not use mapBody for GET requests", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ id: 1 }),
+        status: 200,
+      });
+
+      const args: Partial<ValidationArguments> = {
+        property: "userId",
+        constraints: [
+          {
+            host: "https://api.com/users/:userId",
+            method: "GET",
+            mapBody: (value: string) => ({ transformed: value }),
+          } as ApiValidatorOptions,
+        ],
+      };
+
+      await constraint.validate("123", args as ValidationArguments);
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "https://api.com/users/123",
+        expect.objectContaining({
+          method: "GET",
+          body: undefined,
+        })
+      );
+    });
+
+    it("should not use mapBody for HEAD requests", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({}),
+        status: 200,
+      });
+
+      const args: Partial<ValidationArguments> = {
+        property: "resourceId",
+        constraints: [
+          {
+            host: "https://api.com/resources/:resourceId",
+            method: "HEAD",
+            mapBody: (value: string) => ({ transformed: value }),
+          } as ApiValidatorOptions,
+        ],
+      };
+
+      await constraint.validate("resource-123", args as ValidationArguments);
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "https://api.com/resources/resource-123",
+        expect.objectContaining({
+          method: "HEAD",
+          body: undefined,
+        })
+      );
+    });
+
+    it("should handle mapBody returning complex objects", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true }),
+        status: 200,
+      });
+
+      const args: Partial<ValidationArguments> = {
+        property: "productId",
+        constraints: [
+          {
+            host: "https://api.com/validate-product",
+            method: "POST",
+            mapBody: (id: string) => ({
+              product: {
+                id,
+                metadata: {
+                  source: "validation",
+                  timestamp: "2023-01-01",
+                },
+              },
+              options: {
+                checkStock: true,
+                checkPrice: true,
+              },
+            }),
+          } as ApiValidatorOptions,
+        ],
+      };
+
+      await constraint.validate("prod-789", args as ValidationArguments);
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "https://api.com/validate-product",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            product: {
+              id: "prod-789",
+              metadata: {
+                source: "validation",
+                timestamp: "2023-01-01",
+              },
+            },
+            options: {
+              checkStock: true,
+              checkPrice: true,
+            },
+          }),
+        })
+      );
+    });
+
+    it("should work with mapBody for PUT method", async () => {
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ updated: true }),
+        status: 200,
+      });
+
+      const args: Partial<ValidationArguments> = {
+        property: "status",
+        constraints: [
+          {
+            host: "https://api.com/update-status",
+            method: "PUT",
+            mapBody: (status: string) => ({ newStatus: status }),
+          } as ApiValidatorOptions,
+        ],
+      };
+
+      await constraint.validate("active", args as ValidationArguments);
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        "https://api.com/update-status",
+        expect.objectContaining({
+          method: "PUT",
+          body: JSON.stringify({ newStatus: "active" }),
+        })
+      );
+    });
+  });
 });
