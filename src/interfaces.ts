@@ -1,4 +1,4 @@
-export interface ExternalValidatorOptions {
+export interface ApiValidatorOptions {
   /**
    * The target URL for the validation request.
    * Supports dynamic parameters using `:paramName` syntax (e.g., 'https://api.com/users/:userId').

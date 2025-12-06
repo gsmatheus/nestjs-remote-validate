@@ -4,15 +4,13 @@ import {
   ValidatorConstraintInterface,
   ValidationArguments,
 } from "class-validator";
-import { ExternalValidatorOptions } from "./interfaces";
+import { ApiValidatorOptions } from "./interfaces";
 
 @ValidatorConstraint({ async: true })
 @Injectable()
-export class RemoteApiValidatorConstraint
-  implements ValidatorConstraintInterface
-{
+export class ApiValidatorConstraint implements ValidatorConstraintInterface {
   async validate(value: any, args: ValidationArguments) {
-    const [config] = args.constraints as [ExternalValidatorOptions];
+    const [config] = args.constraints as [ApiValidatorOptions];
 
     if (!value) {
       return !config.required;
@@ -68,7 +66,7 @@ export class RemoteApiValidatorConstraint
   }
 
   defaultMessage(args: ValidationArguments) {
-    const [config] = args.constraints as [ExternalValidatorOptions];
+    const [config] = args.constraints as [ApiValidatorOptions];
     if (!args.value && config.required) {
       return `${args.property} is required.`;
     }

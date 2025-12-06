@@ -1,6 +1,6 @@
 {
     "name": "nestjs-remote-validate",
-    "version": "1.1.1",
+    "version": "1.2.0",
     "description": "External API validator decorator for NestJS/ClassValidator",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",

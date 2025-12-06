@@ -42,7 +42,7 @@ But when developers need to validate data using **external APIs**, they usually:
 There was no simple way to do:
 
 ```ts
-@RemoteValidate({ host: 'https://my-api.com/users/:userId', method: 'GET' })
+@ValidateApi({ host: 'https://my-api.com/users/:userId', method: 'GET' })
 userId: string;
 ```
 
@@ -64,10 +64,10 @@ npm install nestjs-remote-validate
 
 ```ts
 import { Module } from "@nestjs/common";
-import { RemoteApiValidatorConstraint } from "nestjs-remote-validate";
+import { ApiValidatorConstraint } from "nestjs-remote-validate";
 
 @Module({
-  providers: [RemoteApiValidatorConstraint],
+  providers: [ApiValidatorConstraint],
 })
 export class AppModule {}
 ```
@@ -122,10 +122,10 @@ Notes:
 ### ✔️ 1. POST validation with body
 
 ```ts
-import { RemoteValidate } from "nestjs-remote-validate";
+import { ValidateApi } from "nestjs-remote-validate";
 
 export class CreateDto {
-  @RemoteValidate({
+  @ValidateApi({
     host: "https://api.example.com/validate",
     method: "POST",
     required: true,
@@ -141,7 +141,7 @@ export class CreateDto {
 
 ```ts
 export class UpdateDto {
-  @RemoteValidate({
+  @ValidateApi({
     host: "https://api.example.com/resources/:id",
     method: "GET",
     validate: ({ status }) => status === 200,
@@ -156,7 +156,7 @@ export class UpdateDto {
 
 ```ts
 export class EnrichedDto {
-  @RemoteValidate({
+  @ValidateApi({
     host: "https://api.example.com/products/:id",
     method: "GET",
     validate: ({ status }) => status === 200,
@@ -177,7 +177,7 @@ export class EnrichedDto {
 ### ✔️ Passing headers, tokens, or API keys
 
 ```ts
-@RemoteValidate({
+@ValidateApi({
   host: "https://api.example.com/check",
   method: "POST",
   headers: {
@@ -193,7 +193,7 @@ value: string;
 ### ✔️ Inject multiple fields from response
 
 ```ts
-@RemoteValidate({
+@ValidateApi({
   host: "https://api.example.com/users/:id",
   method: "GET",
   validate: ({ status }) => status === 200,
@@ -235,7 +235,7 @@ Validation is mixed with business logic.
 ### ✅ After (clean DTO validation)
 
 ```ts
-@RemoteValidate({ host: "https://api/users/:userId", method: "GET" })
+@ValidateApi({ host: "https://api/users/:userId", method: "GET" })
 userId: string;
 ```
 

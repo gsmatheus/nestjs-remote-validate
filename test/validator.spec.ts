@@ -1,20 +1,20 @@
 import { ValidationArguments } from "class-validator";
-import { RemoteApiValidatorConstraint } from "../src/validator.constraint";
-import { ExternalValidatorOptions } from "../src/interfaces";
+import { ApiValidatorConstraint } from "../src/validator.constraint";
+import { ApiValidatorOptions } from "../src/interfaces";
 
 global.fetch = jest.fn();
 
-describe("RemoteApiValidatorConstraint", () => {
-  let constraint: RemoteApiValidatorConstraint;
+describe("ApiValidatorConstraint", () => {
+  let constraint: ApiValidatorConstraint;
 
   beforeEach(() => {
-    constraint = new RemoteApiValidatorConstraint();
+    constraint = new ApiValidatorConstraint();
     (global.fetch as jest.Mock).mockClear();
   });
 
   it("should return true if value is empty and required is false", async () => {
     const args: Partial<ValidationArguments> = {
-      constraints: [{ required: false } as ExternalValidatorOptions],
+      constraints: [{ required: false } as ApiValidatorOptions],
     };
     const result = await constraint.validate(null, args as ValidationArguments);
     expect(result).toBe(true);
@@ -23,7 +23,7 @@ describe("RemoteApiValidatorConstraint", () => {
 
   it("should return false if value is empty and required is true", async () => {
     const args: Partial<ValidationArguments> = {
-      constraints: [{ required: true } as ExternalValidatorOptions],
+      constraints: [{ required: true } as ApiValidatorOptions],
     };
     const result = await constraint.validate("", args as ValidationArguments);
     expect(result).toBe(false);
@@ -43,7 +43,7 @@ describe("RemoteApiValidatorConstraint", () => {
         {
           host: "https://api.com/validate",
           required: true,
-        } as ExternalValidatorOptions,
+        } as ApiValidatorOptions,
       ],
     };
 
@@ -76,7 +76,7 @@ describe("RemoteApiValidatorConstraint", () => {
           host: "https://api.com/todos/:todoId",
           method: "GET",
           required: true,
-        } as ExternalValidatorOptions,
+        } as ApiValidatorOptions,
       ],
     };
 
@@ -101,7 +101,7 @@ describe("RemoteApiValidatorConstraint", () => {
 
     const args: Partial<ValidationArguments> = {
       constraints: [
-        { host: "https://api.com", required: true } as ExternalValidatorOptions,
+        { host: "https://api.com", required: true } as ApiValidatorOptions,
       ],
     };
 
@@ -125,7 +125,7 @@ describe("RemoteApiValidatorConstraint", () => {
         {
           host: "https://api.com",
           validate: ({ body }) => body.valid === true,
-        } as ExternalValidatorOptions,
+        } as ApiValidatorOptions,
       ],
     };
 
@@ -151,7 +151,7 @@ describe("RemoteApiValidatorConstraint", () => {
           host: "https://api.com",
           extractValue: (body) => body.title,
           targetField: "todoTitle",
-        } as ExternalValidatorOptions,
+        } as ApiValidatorOptions,
       ],
     };
 
@@ -173,7 +173,7 @@ describe("RemoteApiValidatorConstraint", () => {
         {
           host: "https://api.com/validate",
           required: true,
-        } as ExternalValidatorOptions,
+        } as ApiValidatorOptions,
       ],
     };
 
@@ -201,7 +201,7 @@ describe("RemoteApiValidatorConstraint", () => {
           host: "https://api.com/validate",
           required: true,
           timeout: 10000,
-        } as ExternalValidatorOptions,
+        } as ApiValidatorOptions,
       ],
     };
 
@@ -234,7 +234,7 @@ describe("RemoteApiValidatorConstraint", () => {
           host: "https://api.com/validate",
           required: true,
           timeout: 100,
-        } as ExternalValidatorOptions,
+        } as ApiValidatorOptions,
       ],
     };
 

@@ -1,10 +1,10 @@
-import { registerDecorator, ValidationOptions } from 'class-validator';
-import { RemoteApiValidatorConstraint } from './validator.constraint';
-import { ExternalValidatorOptions } from './interfaces';
+import { registerDecorator, ValidationOptions } from "class-validator";
+import { ApiValidatorConstraint } from "./validator.constraint";
+import { ApiValidatorOptions } from "./interfaces";
 
-export function RemoteValidate(
-  options: ExternalValidatorOptions,
-  validationOptions?: ValidationOptions,
+export function ValidateApi(
+  options: ApiValidatorOptions,
+  validationOptions?: ValidationOptions
 ) {
   return function (object: Object, propertyName: string) {
     registerDecorator({
@@ -12,7 +12,7 @@ export function RemoteValidate(
       propertyName: propertyName,
       options: validationOptions,
       constraints: [options],
-      validator: RemoteApiValidatorConstraint,
+      validator: ApiValidatorConstraint,
     });
   };
 }
